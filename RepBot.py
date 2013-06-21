@@ -3,6 +3,7 @@
 import json
 import time
 import re
+from string import maketrans
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor, ssl
@@ -10,6 +11,8 @@ from twisted.internet import protocol, reactor, ssl
 from repsys import ReputationSystem
 import admin
 import random
+
+trans = maketrans('`', '|')
 
 class RepChangeCommand(object):
     def __init__(self):
@@ -26,7 +29,7 @@ class RepChangeCommand(object):
         self.valid = valid
 
     def setUser(self, user):
-        self.user = user.split("|")[0].lower()
+        self.user = normalize_nick(user)
 
     def perform(self, val):
         return NotImplemented
@@ -197,6 +200,9 @@ def normalize_config(cfg):
     ret["admins"] = sorted(set(ret["admins"]))
     return ret
 
+def normalize_nick(nick):
+    return nick.translate(maketrans(trans)).split("|")[0].lower()
+
 
 class RepBot(irc.IRCClient):
 
@@ -227,7 +233,7 @@ class RepBot(irc.IRCClient):
 
     def handleChange(self, user, changer):
         name = changer.getUser()
-        if name == user.split("|")[0].lower():
+        if name == normalize_nick(user):
             self.msg(user, "Cannot change own rep")
             return
         currtime = time.time()
